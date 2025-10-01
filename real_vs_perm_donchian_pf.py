@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from donchian import optimize_donchian, donchian_breakout
 from bar_permute import get_permutation
+from utils.metrics import compute_forward_log_returns
 
 def plot_real_vs_perm(df, in_sample_start="2000-01-01", in_sample_end="2020-01-01", seed=420):
     """
@@ -23,10 +24,8 @@ def plot_real_vs_perm(df, in_sample_start="2000-01-01", in_sample_end="2020-01-0
     # Generate Donchian signals on real data
     signal_real = donchian_breakout(train_df, best_lookback)
 
-    # Calculate cumulative log returns for real data
-    # r = log(close[i+1]) - log(close[i])
-    log_close_real = np.log(train_df['close'])
-    r_real = log_close_real.diff().shift(-1)  # shift -1 so each bar has "next" bar return
+    # Calculate forward log returns for real data
+    r_real = compute_forward_log_returns(train_df['close'])
     strategy_rets_real = signal_real * r_real
     cum_log_real = strategy_rets_real.cumsum()
 
@@ -38,9 +37,8 @@ def plot_real_vs_perm(df, in_sample_start="2000-01-01", in_sample_end="2020-01-0
     # Generate Donchian signals on permuted data
     signal_perm = donchian_breakout(train_perm, best_lookback_perm)
 
-    # Calculate cumulative log returns for permuted data
-    log_close_perm = np.log(train_perm['close'])
-    r_perm = log_close_perm.diff().shift(-1)
+    # Calculate forward log returns for permuted data
+    r_perm = compute_forward_log_returns(train_perm['close'])
     strategy_rets_perm = signal_perm * r_perm
     cum_log_perm = strategy_rets_perm.cumsum()
 

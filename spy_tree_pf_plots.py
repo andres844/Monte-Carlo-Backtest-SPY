@@ -5,6 +5,8 @@ from tqdm import tqdm
 
 from spy_tree_strategy import train_tree, tree_strategy
 from bar_permute import get_permutation
+from utils.metrics import compute_forward_log_returns
+from utils.plots import plot_fan_chart
 
 def plot_tree_permutation_fan(df, start_date="2000-01-01", end_date="2020-01-01",
                               lags=(6, 24, 168), n_permutations=1000):
@@ -24,7 +26,7 @@ def plot_tree_permutation_fan(df, start_date="2000-01-01", end_date="2020-01-01"
     # 1) Filter the in-sample data
     in_sample_df = df[(df.index >= start_date) & (df.index < end_date)].copy()
     if 'r' not in in_sample_df.columns:
-        in_sample_df['r'] = np.log(in_sample_df['close']).diff().shift(-1)
+        in_sample_df['r'] = compute_forward_log_returns(in_sample_df['close'])
 
     # 2) Train the tree on real data
     real_model = train_tree(in_sample_df, lags)
@@ -43,25 +45,16 @@ def plot_tree_permutation_fan(df, start_date="2000-01-01", end_date="2020-01-01"
         perm_signal, _ = tree_strategy(perm_df, perm_model, lags)
 
         # Because 'r' was not in perm_df, recompute:
-        perm_df['r'] = np.log(perm_df['close']).diff().shift(-1)
+        perm_df['r'] = compute_forward_log_returns(perm_df['close'])
         perm_cum = (perm_signal * perm_df['r']).cumsum()
         perm_cum_returns.append(perm_cum)
 
     # 4) Plot all permutations in faint white
     fig, ax = plt.subplots(figsize=(10, 6))
-    for series in perm_cum_returns:
-        ax.plot(series.index, series.values, color='white', alpha=0.05)
-
-    # 5) Plot the real strategy in red
-    ax.plot(real_cum.index, real_cum.values,
-            color='red', linewidth=2.0,
-            label=f"Real Optimized (PF={real_pf:.2f})")
-
-    # 6) Final styling
-    ax.set_title("In-Sample Permutation Test (Optimized Tree Strategy)", color='green', fontsize=14)
+    plot_fan_chart(real_cum, perm_cum_returns, ax=ax)
+    ax.set_title(f"In-Sample Permutation Test (Optimized Tree Strategy)\nPF={real_pf:.2f}", color='green', fontsize=14)
     ax.set_xlabel("Date")
     ax.set_ylabel("Cumulative Log Return")
-    ax.legend(loc="upper left")
 
     plt.show()
 

@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from donchian import optimize_donchian
 from bar_permute import get_permutation
+from utils.metrics import compute_forward_log_returns
 
 # 1. Load your SPY daily data
 df = pd.read_csv("spy_daily_2000_2024.csv", parse_dates=["date"])

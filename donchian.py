@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from utils.metrics import compute_forward_log_returns, profit_factor, evaluate
 
 def donchian_breakout(ohlc: pd.DataFrame, lookback: int):
     # input df is assumed to have a 'close' column
@@ -12,7 +13,7 @@ def donchian_breakout(ohlc: pd.DataFrame, lookback: int):
     signal = signal.ffill()
     return signal
 
-def optimize_donchian(ohlc: pd.DataFrame, frequency: str = 'daily'):
+def optimize_donchian(ohlc: pd.DataFrame, frequency: str = 'daily', cost_bps: float = 0.0):
     """
     Finds the best Donchian lookback that maximizes profit factor.
     frequency: 'daily', 'weekly', or 'monthly' 
@@ -31,20 +32,14 @@ def optimize_donchian(ohlc: pd.DataFrame, frequency: str = 'daily'):
     best_pf = 0.0
     best_lookback = -1
 
-    # log returns, shifting so each row has the next bar's return
-    r = np.log(ohlc['close']).diff().shift(-1)
+    # forward log returns per bar
+    r = compute_forward_log_returns(ohlc['close'])
 
     for lookback in lookback_range:
         signal = donchian_breakout(ohlc, lookback)
-        sig_rets = signal * r
-        
-        pos_sum = sig_rets[sig_rets > 0].sum(skipna=True)
-        neg_sum = sig_rets[sig_rets < 0].sum(skipna=True)
-
-        if abs(neg_sum) < 1e-15:
-            sig_pf = np.inf if pos_sum > 0 else 0
-        else:
-            sig_pf = pos_sum / abs(neg_sum)
+        # Evaluate with optional costs
+        stats, _, net, _ = evaluate(signal, r, cost_bps=cost_bps)
+        sig_pf = stats.pf
 
         if sig_pf > best_pf:
             best_pf = sig_pf

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from spy_tree_strategy import train_tree, tree_strategy
+from utils.metrics import compute_forward_log_returns, evaluate
 
 def walkforward_tree(
     ohlc: pd.DataFrame,
@@ -63,17 +64,14 @@ def walkforward_tree(
 
     return wf_signal
 
-def walkforward_pf(ohlc, wf_signal):
+def walkforward_pf(ohlc, wf_signal, cost_bps: float = 0.0):
     """
     Given an ohlc DataFrame and a walk-forward signal,
     compute the profit factor on the entire in-sample period.
     """
-    # Ensure we have log returns
+    # Ensure we have forward log returns
     if 'r' not in ohlc.columns:
-        ohlc['r'] = np.log(ohlc['close']).diff().shift(-1)
+        ohlc['r'] = compute_forward_log_returns(ohlc['close'])
 
-    rets = wf_signal * ohlc['r']
-    pos_sum = rets[rets > 0].sum(skipna=True)
-    neg_sum = rets[rets < 0].abs().sum(skipna=True)
-    pf = pos_sum / neg_sum if neg_sum != 0 else np.inf
-    return pf
+    stats, _, net, _ = evaluate(pd.Series(wf_signal, index=ohlc.index), ohlc['r'], cost_bps=cost_bps)
+    return stats.pf

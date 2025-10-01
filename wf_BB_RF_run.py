@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.ensemble import RandomForestClassifier
 from bar_permute import get_permutation
+from utils.metrics import compute_forward_log_returns
 
 # Import strategy functions and walk-forward functions
 from wf_BB_RF import (
@@ -54,13 +55,15 @@ freq_params = {
 }
 
 params = freq_params[frequency]
+# One-way transaction cost in bps (set to 0 if not desired)
+cost_bps = 0.0
 
 # ------------------------------
 # Load Full Dataset (2000-2024)
 # ------------------------------
 df = pd.read_csv(params["file"], parse_dates=["date"])
 df.set_index("date", inplace=True)
-df['r'] = np.log(df['close']).diff().shift(-1)  # log returns for entire dataset
+df['r'] = compute_forward_log_returns(df['close'])  # forward log returns for entire dataset
 
 # ------------------------------
 # Out-of-Sample Test Period: 2020-01-01 onward
@@ -80,7 +83,7 @@ wf_signal_bb = walkforward_bollinger(
     train_step=params["train_step"],
     opt_start_date=opt_start_date
 )
-real_pf_bb = walkforward_pf(df, wf_signal_bb)
+real_pf_bb = walkforward_pf(df, wf_signal_bb, cost_bps=cost_bps)
 print(f"Bollinger Bands Test PF: {real_pf_bb:.4f}")
 
 # Plot cumulative returns for the test period
@@ -101,7 +104,8 @@ perm_pfs_bb, p_value_bb = in_sample_wf_permutation_test(
     walkforward_bollinger, df,
     strategy_args=(params["frequency"], None, params["num_std"], params["train_lookback"], params["train_step"], opt_start_date),
     real_pf=real_pf_bb,
-    n_permutations=1000
+    n_permutations=1000,
+    cost_bps=cost_bps,
 )
 print(f"Bollinger Bands ({params['plot_label']}) WF MCPT P-Value: {p_value_bb:.4f}")
 perm_pfs_bb_clean = [pf for pf in perm_pfs_bb if np.isfinite(pf)]
@@ -126,7 +130,7 @@ wf_signal_rf = walkforward_rf(
     train_step=params["train_step"],
     opt_start_date=opt_start_date
 )
-real_pf_rf = walkforward_pf(df, wf_signal_rf)
+real_pf_rf = walkforward_pf(df, wf_signal_rf, cost_bps=cost_bps)
 print(f"Random Forest Test PF: {real_pf_rf:.2f}")
 
 # Plot cumulative returns for the test period
@@ -146,7 +150,8 @@ perm_pfs_rf, p_value_rf = in_sample_wf_permutation_test(
     walkforward_rf, df,
     strategy_args=(params["frequency"], params["train_lookback"], params["train_step"], opt_start_date),
     real_pf=real_pf_rf,
-    n_permutations=1000
+    n_permutations=1000,
+    cost_bps=cost_bps,
 )
 print(f"Random Forest ({params['plot_label']}) WF MCPT P-Value: {p_value_rf:.4f}")
 

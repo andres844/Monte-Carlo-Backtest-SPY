@@ -6,6 +6,8 @@ from tqdm import tqdm
 from spy_tree_strategy import train_tree, tree_strategy
 from bar_permute import get_permutation
 from walkforward_tree import walkforward_tree, walkforward_pf
+from utils.metrics import compute_forward_log_returns
+from utils.plots import plot_fan_chart
 
 # 1) Load the full SPY daily dataset (2000–2024)
 df = pd.read_csv("spy_monthly_2000_2024.csv", parse_dates=["date"])
@@ -13,7 +15,7 @@ df.set_index("date", inplace=True)
 
 # Use the full dataset and compute log returns (r)
 full_df = df.copy()
-full_df['r'] = np.log(full_df['close']).diff().shift(-1)
+full_df['r'] = compute_forward_log_returns(full_df['close'])
 
 # 2) Run walk-forward on REAL data
 #    Using an out-of-sample period starting 2020-01-01
@@ -40,8 +42,8 @@ print("Running walk-forward permutation test...")
 for i in tqdm(range(n_permutations)):
     # Permute the full dataset (which covers both training and test periods)
     perm_df = get_permutation(full_df, start_index=0, seed=i)
-    # Recompute log returns for permuted data
-    perm_df['r'] = np.log(perm_df['close']).diff().shift(-1)
+    # Recompute forward log returns for permuted data
+    perm_df['r'] = compute_forward_log_returns(perm_df['close'])
     
     # Run walk-forward test on permuted data
     wf_signal_perm = walkforward_tree(
@@ -66,17 +68,11 @@ print(f"Walk-forward Permutation Test P-Value: {p_value:.4f}")
 # 4) Plot the fan chart of walk-forward cumulative returns
 plt.style.use("dark_background")
 plt.figure(figsize=(10, 6))
-
-# Plot each permutation's cumulative returns as faint white lines
-for series in perm_cum_returns:
-    plt.plot(series.index, series.values, color="white", alpha=0.1)
-
-# Plot the real strategy's cumulative returns in red
-plt.plot(real_cum.index, real_cum.values,
-         color="red", linewidth=2.0,
-         label=f"Real WF Strategy (PF={real_pf:.2f})")
-
-plt.title(f"Walk-Forward Tree Strategy Fan Chart (Monthly)\nReal PF={real_pf:.2f}, p-value={p_value:.4f}", color="green")
+plot_fan_chart(real_cum, perm_cum_returns)
+plt.title(
+    f"Walk-Forward Tree Strategy Fan Chart (Monthly)\nReal PF={real_pf:.2f}, p-value={p_value:.4f}",
+    color="green",
+)
 plt.xlabel("Date")
 plt.ylabel("Cumulative Log Return")
 plt.legend(loc="upper left")

@@ -2,11 +2,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
+from utils.metrics import compute_forward_log_returns, evaluate
 
 # ------------------------------
 # Strategy 1: Bollinger Bands Mean Reversion
 # ------------------------------
-def bollinger_strategy(ohlc: pd.DataFrame, frequency="daily", window=None, num_std=1):
+def bollinger_strategy(ohlc: pd.DataFrame, frequency="daily", window=None, num_std=1, cost_bps: float = 0.0):
     """
     Bollinger Bands Mean Reversion Strategy:
       - Computes the moving average (MA) and standard deviation (std) of 'close'
@@ -49,13 +50,9 @@ def bollinger_strategy(ohlc: pd.DataFrame, frequency="daily", window=None, num_s
     signal[ohlc['close'] > upper] = -1
     signal = signal.ffill().fillna(0)
     
-    log_c = np.log(ohlc['close'])
-    r = log_c.diff().shift(-1)
-    strat_rets = signal * r
-    pos_sum = strat_rets[strat_rets > 0].sum(skipna=True)
-    neg_sum = strat_rets[strat_rets < 0].abs().sum(skipna=True)
-    pf = pos_sum / (neg_sum + 1e-8)  # small constant to avoid division by zero
-    return signal, pf
+    r = compute_forward_log_returns(ohlc['close'])
+    stats, _, net, _ = evaluate(signal, r, cost_bps=cost_bps)
+    return signal, stats.pf
 
 # ------------------------------
 # Strategy 2: Random Forest–Based Strategy
@@ -109,7 +106,7 @@ def train_rf(ohlc: pd.DataFrame, frequency="daily"):
     model.fit(X, y)
     return model
 
-def rf_strategy(ohlc: pd.DataFrame, model, frequency="daily"):
+def rf_strategy(ohlc: pd.DataFrame, model, frequency="daily", cost_bps: float = 0.0):
     """
     Generate trading signals using the trained Random Forest model.
     
@@ -147,12 +144,9 @@ def rf_strategy(ohlc: pd.DataFrame, model, frequency="daily"):
     
     signal = pred_final.apply(lambda x: 1 if x == 1 else -1)
     
-    r = log_c.diff().shift(-1)
-    strat_rets = signal * r
-    pos_sum = strat_rets[strat_rets > 0].sum(skipna=True)
-    neg_sum = strat_rets[strat_rets < 0].abs().sum(skipna=True)
-    pf = pos_sum / neg_sum if neg_sum != 0 else np.inf
-    return signal, pf
+    r = compute_forward_log_returns(ohlc['close'])
+    stats, _, net, _ = evaluate(signal, r, cost_bps=cost_bps)
+    return signal, stats.pf
 
 # ------------------------------
 # Permutation Function (unchanged)
@@ -161,17 +155,19 @@ from bar_permute import get_permutation
 
 def run_permutation(strategy_func, ohlc, strategy_args=(), seed=0):
     permuted = get_permutation(ohlc, start_index=0, seed=seed)
-    permuted['r'] = np.log(permuted['close']).diff().shift(-1)
+    permuted['r'] = compute_forward_log_returns(permuted['close'])
     signal, pf = strategy_func(permuted, *strategy_args)
     return pf
 
-def in_sample_permutation_test(strategy_func, ohlc, strategy_args=(), n_permutations=200):
+def in_sample_permutation_test(strategy_func, ohlc, strategy_args=(), real_pf=None, n_permutations=200):
+    if real_pf is None:
+        raise ValueError("real_pf must be provided to in_sample_permutation_test")
     perm_better_count = 1
     perm_pfs = []
     from tqdm import tqdm
     for i in tqdm(range(1, n_permutations), desc="Permutation Test"):
         pf = run_permutation(strategy_func, ohlc, strategy_args, seed=i)
-        if pf >= real_pf:  # real_pf is defined in the outer scope
+        if pf >= real_pf:
             perm_better_count += 1
         perm_pfs.append(pf)
     p_value = perm_better_count / n_permutations
@@ -208,7 +204,7 @@ if __name__ == "__main__":
     
     df = pd.read_csv(params['file'], parse_dates=["date"])
     df.set_index("date", inplace=True)
-    df['r'] = np.log(df['close']).diff().shift(-1)
+    df['r'] = compute_forward_log_returns(df['close'])
     
     # In-sample period: 2000-01-01 to 2020-01-01
     in_sample = df[(df.index >= "2000-01-01") & (df.index < "2020-01-01")].copy()
@@ -229,8 +225,13 @@ if __name__ == "__main__":
     plt.show()
     
     # Permutation test for Bollinger Bands strategy
-    real_pf = real_pf_bb
-    perm_pfs_bb, p_value_bb = in_sample_permutation_test(bollinger_strategy, in_sample, strategy_args=(20, 2), n_permutations=10000)
+    perm_pfs_bb, p_value_bb = in_sample_permutation_test(
+        bollinger_strategy,
+        in_sample,
+        strategy_args=(params['frequency'], None, 2),
+        real_pf=real_pf_bb,
+        n_permutations=10000,
+    )
     print(f"Bollinger Bands ({chosen_freq.capitalize()}) In-Sample MCPT P-Value: {p_value_bb:.4f}")
     perm_pfs_bb_clean = [pf for pf in perm_pfs_bb if np.isfinite(pf)]
 
@@ -257,8 +258,13 @@ if __name__ == "__main__":
     plt.show()
     
     # Permutation test for Random Forest strategy
-    real_pf = real_pf_rf
-    perm_pfs_rf, p_value_rf = in_sample_permutation_test(rf_strategy, in_sample, strategy_args=(rf_model, params['frequency']), n_permutations=10000)
+    perm_pfs_rf, p_value_rf = in_sample_permutation_test(
+        rf_strategy,
+        in_sample,
+        strategy_args=(rf_model, params['frequency']),
+        real_pf=real_pf_rf,
+        n_permutations=10000,
+    )
     print(f"Random Forest ({chosen_freq.capitalize()}) In-Sample MCPT P-Value: {p_value_rf:.4f}")
     
     plt.figure(figsize=(10,6))

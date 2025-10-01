@@ -5,6 +5,8 @@ from tqdm import tqdm
 
 from bar_permute import get_permutation
 from donchian import walkforward_donch  # Your walkforward function
+from utils.metrics import compute_forward_log_returns
+from utils.plots import plot_fan_chart
 
 # ------------------------------------------------------------------
 # IMPORTANT:
@@ -17,8 +19,8 @@ from donchian import walkforward_donch  # Your walkforward function
 df = pd.read_csv("spy_monthly_2000_2024.csv", parse_dates=["date"])
 df.set_index("date", inplace=True)
 
-# Compute log returns for the full dataset
-df['r'] = np.log(df['close']).diff().shift(-1)
+# Compute forward log returns for the full dataset
+df['r'] = compute_forward_log_returns(df['close'])
 
 # (Optional) You might want to create a copy of the full data if needed
 full_df = df.copy()
@@ -59,8 +61,8 @@ for perm_i in tqdm(range(1, n_permutations)):
     # or you can choose to permute the entire dataset.
     wf_perm = get_permutation(full_df, start_index=12 * 4, seed=perm_i)
     
-    # Recalculate log returns (if needed) on the permuted data
-    wf_perm['r'] = np.log(wf_perm['close']).diff().shift(-1)
+    # Recalculate forward log returns on the permuted data
+    wf_perm['r'] = compute_forward_log_returns(wf_perm['close'])
     
     # Run walk-forward test on the permuted data with the same parameters
     wf_signal_perm = walkforward_donch(
@@ -88,15 +90,11 @@ print(f"Walkforward MCPT P-Value: {walkforward_mcpt_pval:.4f}")
 # Plot the real strategy's cumulative returns (in red)
 plt.style.use("dark_background")
 plt.figure(figsize=(10, 6))
-
-# Plot each permutation's cumulative returns as faint white lines
-for series in perm_cum_returns:
-    plt.plot(series.index, series.values, color="white", alpha=0.1)
-
-# Plot the real strategy's cumulative returns in red
-plt.plot(real_cum.index, real_cum.values, color="red", linewidth=2.0, label=f"Real WF (PF={real_pf:.2f})")
-
-plt.title(f"Walk-Forward Donchian Fan Chart (Monthly)\nReal PF={real_pf:.2f}, p-value={walkforward_mcpt_pval:.4f}", color="green")
+plot_fan_chart(real_cum, perm_cum_returns)
+plt.title(
+    f"Walk-Forward Donchian Fan Chart (Monthly)\nReal PF={real_pf:.2f}, p-value={walkforward_mcpt_pval:.4f}",
+    color="green",
+)
 plt.xlabel("Date")
 plt.ylabel("Cumulative Log Return")
 plt.legend(loc="upper left")
