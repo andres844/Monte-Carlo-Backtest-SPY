@@ -2,6 +2,22 @@ import numpy as np
 import pandas as pd
 from typing import List, Union, Optional, Literal
 
+
+def _reconstruct_segment(base_close: float,
+                         gaps: np.ndarray,
+                         rel_high: np.ndarray,
+                         rel_low: np.ndarray,
+                         rel_close: np.ndarray) -> np.ndarray:
+    """Vectorized reconstruction of log OHLC given relative moves."""
+    close_deltas = gaps + rel_close
+    close_vals = base_close + np.cumsum(close_deltas)
+    prev_close = np.concatenate(([base_close], close_vals[:-1]))
+    open_vals = prev_close + gaps
+    high_vals = open_vals + rel_high
+    low_vals = open_vals + rel_low
+    out = np.vstack([open_vals, high_vals, low_vals, close_vals]).T
+    return out
+
 def get_permutation(
     ohlc: Union[pd.DataFrame, List[pd.DataFrame]],
     start_index: int = 0,
@@ -69,17 +85,20 @@ def get_permutation(
     perm_ohlc = []
     for mkt_i, reg_bars in enumerate(ohlc):
         perm_bars = np.zeros((n_bars, 4))
-        # Original price log values
         log_bars = np.log(reg_bars[['open', 'high', 'low', 'close']]).to_numpy().copy()
-        perm_bars[:start_index] = log_bars[:start_index]
+        perm_bars[:perm_index] = log_bars[:perm_index]
         perm_bars[start_index] = start_bar[mkt_i]
 
-        for i in range(perm_index, n_bars):
-            k = i - perm_index
-            perm_bars[i, 0] = perm_bars[i - 1, 3] + relative_open[mkt_i][k]
-            perm_bars[i, 1] = perm_bars[i, 0] + relative_high[mkt_i][k]
-            perm_bars[i, 2] = perm_bars[i, 0] + relative_low[mkt_i][k]
-            perm_bars[i, 3] = perm_bars[i, 0] + relative_close[mkt_i][k]
+        if perm_n > 0:
+            base_close = perm_bars[perm_index - 1, 3]
+            segment = _reconstruct_segment(
+                base_close,
+                relative_open[mkt_i],
+                relative_high[mkt_i],
+                relative_low[mkt_i],
+                relative_close[mkt_i],
+            )
+            perm_bars[perm_index:, :] = segment
 
         perm_bars = np.exp(perm_bars)
         # Create DataFrame for the permuted prices
@@ -157,17 +176,11 @@ def get_permutation_block_bootstrap(
 
         # Reconstruct log bars
         perm = np.zeros_like(log_bars)
-        perm[:start_index, :] = log_bars[:start_index, :]
-        perm[start_index, :] = log_bars[start_index, :]
-        prev_close = perm[start_index, 3]
-        for k in range(perm_n):
-            i = perm_index + k
-            lo = prev_close + r_o_perm[k]
-            perm[i, 0] = lo
-            perm[i, 1] = lo + r_h_perm[k]
-            perm[i, 2] = lo + r_l_perm[k]
-            perm[i, 3] = lo + r_c_perm[k]
-            prev_close = perm[i, 3]
+        perm[:perm_index, :] = log_bars[:perm_index, :]
+        if perm_n > 0:
+            base_close = perm[perm_index - 1, 3]
+            segment = _reconstruct_segment(base_close, r_o_perm, r_h_perm, r_l_perm, r_c_perm)
+            perm[perm_index:, :] = segment
 
         perm = np.exp(perm)
         perm_df = pd.DataFrame(perm, index=time_index, columns=['open', 'high', 'low', 'close'])
@@ -248,17 +261,11 @@ def get_permutation_grouped(
         r_c_perm = r_c[perm_index:][order]
 
         perm = np.zeros_like(log_bars)
-        perm[:start_index, :] = log_bars[:start_index, :]
-        perm[start_index, :] = log_bars[start_index, :]
-        prev_close = perm[start_index, 3]
-        for k in range(len(order)):
-            i = perm_index + k
-            lo = prev_close + r_o_perm[k]
-            perm[i, 0] = lo
-            perm[i, 1] = lo + r_h_perm[k]
-            perm[i, 2] = lo + r_l_perm[k]
-            perm[i, 3] = lo + r_c_perm[k]
-            prev_close = perm[i, 3]
+        perm[:perm_index, :] = log_bars[:perm_index, :]
+        if len(order) > 0:
+            base_close = perm[perm_index - 1, 3]
+            segment = _reconstruct_segment(base_close, r_o_perm, r_h_perm, r_l_perm, r_c_perm)
+            perm[perm_index:, :] = segment
 
         perm = np.exp(perm)
         perm_df = pd.DataFrame(perm, index=time_index, columns=['open', 'high', 'low', 'close'])
@@ -322,28 +329,26 @@ def get_permutation_sign_flip(
         r_l_perm = r_l.copy()
         r_c_perm = r_c.copy()
 
-        # Apply sign flips to the permutable region
-        for k in range(perm_n):
-            s = signs[k]
-            i = perm_index + k
-            if s < 0:
-                r_o_perm[i] = -r_o[i]
-                r_c_perm[i] = -r_c[i]
-                # Swap high/low legs with sign change
-                r_h_perm[i] = -r_l[i]
-                r_l_perm[i] = -r_h[i]
+        if perm_n > 0:
+            slice_o = r_o_perm[perm_index:]
+            slice_c = r_c_perm[perm_index:]
+            slice_h = r_h_perm[perm_index:]
+            slice_l = r_l_perm[perm_index:]
+            neg = signs < 0
+            if np.any(neg):
+                slice_o[neg] = -r_o[perm_index:][neg]
+                slice_c[neg] = -r_c[perm_index:][neg]
+                h_orig = r_h[perm_index:][neg]
+                l_orig = r_l[perm_index:][neg]
+                slice_h[neg] = -l_orig
+                slice_l[neg] = -h_orig
 
         perm = np.zeros_like(log_bars)
-        perm[:start_index, :] = log_bars[:start_index, :]
-        perm[start_index, :] = log_bars[start_index, :]
-        prev_close = perm[start_index, 3]
-        for i in range(perm_index, n_bars):
-            lo = prev_close + r_o_perm[i]
-            perm[i, 0] = lo
-            perm[i, 1] = lo + r_h_perm[i]
-            perm[i, 2] = lo + r_l_perm[i]
-            perm[i, 3] = lo + r_c_perm[i]
-            prev_close = perm[i, 3]
+        perm[:perm_index, :] = log_bars[:perm_index, :]
+        if perm_n > 0:
+            base_close = perm[perm_index - 1, 3]
+            segment = _reconstruct_segment(base_close, r_o_perm[perm_index:], r_h_perm[perm_index:], r_l_perm[perm_index:], r_c_perm[perm_index:])
+            perm[perm_index:, :] = segment
 
         perm = np.exp(perm)
         perm_df = pd.DataFrame(perm, index=time_index, columns=['open', 'high', 'low', 'close'])
