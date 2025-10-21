@@ -1,0 +1,16 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# Python virtual environments
+.venv/
+venv/
+
+# Results and artifacts
+results/*.csv
+
+# VSCode
+.vscode/

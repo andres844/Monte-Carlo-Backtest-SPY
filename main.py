@@ -3,12 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from donchian import optimize_donchian
+from strategies.donchian import optimize_donchian
 from bar_permute import get_permutation
 from utils.metrics import compute_forward_log_returns
 
 # 1. Load your SPY daily data
-df = pd.read_csv("spy_daily_2000_2024.csv", parse_dates=["date"])
+df = pd.read_csv("spy_data/spy_daily_2000_2024.csv", parse_dates=["date"])
 df.set_index("date", inplace=True)
 
 # 2. Filter in-sample

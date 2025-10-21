@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from spy_tree_strategy import train_tree, tree_strategy
+from strategies.spy_tree_strategy import train_tree, tree_strategy
 from utils.metrics import compute_forward_log_returns, evaluate
 
 def walkforward_tree(

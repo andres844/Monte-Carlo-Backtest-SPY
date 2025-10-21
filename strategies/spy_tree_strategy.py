@@ -86,15 +86,15 @@ if __name__ == '__main__':
     # Define dataset parameters for each frequency
     freq_params = {
         'daily': {
-            'file': 'spy_daily_2000_2024.csv',
+            'file': 'spy_data/spy_daily_2000_2024.csv',
             'lags': (6, 24, 168)
         },
         'weekly': {
-            'file': 'spy_weekly_2000_2024.csv',
+            'file': 'spy_data/spy_weekly_2000_2024.csv',
             'lags': (3, 12, 48)  # example values; adjust as needed
         },
         'monthly': {
-            'file': 'spy_monthly_2000_2024.csv',
+            'file': 'spy_data/spy_monthly_2000_2024.csv',
             'lags': (2, 6, 24)   # example values; adjust as needed
         }
     }

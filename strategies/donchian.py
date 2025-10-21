@@ -127,7 +127,7 @@ def walkforward_donch(ohlc: pd.DataFrame,
     return wf_signal
 
 if __name__ == '__main__':
-    df = pd.read_csv("spy_daily_2000_2024.csv", parse_dates=["date"])
+    df = pd.read_csv("spy_data/spy_daily_2000_2024.csv", parse_dates=["date"])
     df.set_index("date", inplace=True)
 
     df = df[(df.index.year >= 2000) & (df.index.year < 2020)] 

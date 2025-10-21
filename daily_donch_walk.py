@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from donchian import walkforward_donch
+from strategies.donchian import walkforward_donch
 
 # Load your daily data (ensure 'date' column is parsed and set as index)
-df = pd.read_csv("spy_daily_2000_2024.csv", parse_dates=["date"])
+df = pd.read_csv("spy_data/spy_daily_2000_2024.csv", parse_dates=["date"])
 df.set_index("date", inplace=True)
 
 # Run walk-forward optimization using default parameters for daily frequency.

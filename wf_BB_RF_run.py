@@ -29,7 +29,7 @@ frequency = "monthly"
 # All parameters related to the timeframe are stored in this dictionary:
 freq_params = {
     "daily": {
-        "file": "spy_daily_2000_2024.csv",
+        "file": "spy_data/spy_daily_2000_2024.csv",
         "frequency": "daily",
         "train_lookback": 365 * 4,  # ~4 years
         "train_step": 30,
@@ -37,7 +37,7 @@ freq_params = {
         "plot_label": "Daily"
     },
     "weekly": {
-        "file": "spy_weekly_2000_2024.csv",
+        "file": "spy_data/spy_weekly_2000_2024.csv",
         "frequency": "weekly",
         "train_lookback": 52 * 4,  # ~4 years of weeks
         "train_step": 4,
@@ -45,7 +45,7 @@ freq_params = {
         "plot_label": "Weekly"
     },
     "monthly": {
-        "file": "spy_monthly_2000_2024.csv",
+        "file": "spy_data/spy_monthly_2000_2024.csv",
         "frequency": "monthly",
         "train_lookback": 12 * 4,  # ~4 years of months
         "train_step": 3,

@@ -15,10 +15,10 @@ Centralized runner orchestrates experiments and plots across in-sample and walk-
 ---
 
 ## Data Requirements
-Place CSVs in the repo root:
-- `spy_daily_2000_2024.csv`
-- `spy_weekly_2000_2024.csv`
-- `spy_monthly_2000_2024.csv`
+Place CSVs under `spy_data/`:
+- `spy_data/spy_daily_2000_2024.csv`
+- `spy_data/spy_weekly_2000_2024.csv`
+- `spy_data/spy_monthly_2000_2024.csv`
 
 Required format:
 - Columns: `date, open, high, low, close, volume`
@@ -134,12 +134,13 @@ python3 runner.py --tasks all
 ## Project Structure
 
 ```
-runner.py              # central CLI
-donchian.py            # Donchian breakout + walk-forward
-spy_tree_strategy.py   # Decision Tree model + strategy
-wf_BB_RF.py            # Bollinger / RF strategies + walk-forward
-bar_permute.py         # permutation null models
-donchian_stability.py  # parameter robustness heatmap
+runner.py                         # central CLI
+strategies/
+    donchian.py                   # Donchian breakout + walk-forward
+    spy_tree_strategy.py          # Decision Tree model + strategy
+bar_permute.py                    # permutation null models
+wf_BB_RF.py                       # Bollinger / RF strategies + walk-forward
+donchian_stability.py             # parameter robustness heatmap
 utils/
     metrics.py         # returns, PF/Sharpe/Sortino/MDD/Calmar, turnover, costs
     plots.py           # fan chart, underwater plots

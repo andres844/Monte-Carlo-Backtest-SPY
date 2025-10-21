@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from donchian import optimize_donchian, donchian_breakout, walkforward_donch
+from strategies.donchian import optimize_donchian, donchian_breakout, walkforward_donch
 from walkforward_tree import walkforward_tree, walkforward_pf as walkforward_pf_tree
-from spy_tree_strategy import train_tree, tree_strategy
+from strategies.spy_tree_strategy import train_tree, tree_strategy
 from wf_BB_RF import (
     bollinger_strategy,
     train_rf,
@@ -34,9 +34,9 @@ def _progress(iterable, desc: str):
 
 def load_dataset(frequency: str) -> pd.DataFrame:
     files = {
-        'daily': 'spy_daily_2000_2024.csv',
-        'weekly': 'spy_weekly_2000_2024.csv',
-        'monthly': 'spy_monthly_2000_2024.csv',
+        'daily': 'spy_data/spy_daily_2000_2024.csv',
+        'weekly': 'spy_data/spy_weekly_2000_2024.csv',
+        'monthly': 'spy_data/spy_monthly_2000_2024.csv',
     }
     df = pd.read_csv(files[frequency], parse_dates=['date'])
     df.set_index('date', inplace=True)
@@ -459,9 +459,9 @@ def main():
             run_wf_rf_mcpt(args.frequency, args.opt_start_date, args.cost_bps, args.n_permutations,
                            args.variant, args.start_index, args.block_size, show_plots)
         elif t == 'rnn_insample_mcpt':
-            from rnn_strategy import fit_and_eval
+            from strategies.rnn_strategy import fit_and_eval
 
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res = fit_and_eval(
                 df,
                 start=args.start or '2000-01-01',
@@ -495,9 +495,9 @@ def main():
                 plt.tight_layout()
                 plt.show()
         elif t == 'wf_rnn_mcpt':
-            from rnn_strategy import fit_and_eval, apply_model_on, mcpt_fixed_model_on_window
+            from strategies.rnn_strategy import fit_and_eval, apply_model_on, mcpt_fixed_model_on_window
 
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res_tr = fit_and_eval(
                 df,
                 start='2000-01-01',
@@ -575,8 +575,8 @@ def main():
             )
             rnn_grid_main(ns)
         elif t == 'wf_rnn_retrain':
-            from rnn_strategy import walkforward_rnn
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            from strategies.rnn_strategy import walkforward_rnn
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res = walkforward_rnn(
                 df,
                 horizon=args.horizon,
@@ -599,8 +599,8 @@ def main():
                 res['equity_curve'].plot(title=f"RNN {args.model_type} equity (walk-forward)")
                 plt.xlabel('Date'); plt.ylabel('Cumulative Log Return'); plt.grid(False); plt.show()
         elif t == 'rnn_mc_kelly':
-            from rnn_strategy import fit_and_eval_kelly_mc
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            from strategies.rnn_strategy import fit_and_eval_kelly_mc
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res = fit_and_eval_kelly_mc(
                 df, start=args.start, end=args.end, horizon=args.horizon, win=args.win, model_type=args.model_type,
                 cost_bps=args.cost_bps, mcpt_variant=args.mcpt_variant, n_permutations=args.n_permutations,
@@ -612,8 +612,8 @@ def main():
             if show_plots and isinstance(res.get('equity_curve'), pd.Series):
                 plt.style.use('dark_background'); res['equity_curve'].plot(title='MC-Dropout Kelly (in-sample)'); plt.show()
         elif t == 'wf_rnn_mc_kelly':
-            from rnn_strategy import fit_and_eval_kelly_mc, apply_model_on_kelly_mc
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            from strategies.rnn_strategy import fit_and_eval_kelly_mc, apply_model_on_kelly_mc
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res_tr = fit_and_eval_kelly_mc(
                 df, start='2000-01-01', end='2020-01-01', horizon=args.horizon, win=args.win, model_type=args.model_type,
                 cost_bps=args.cost_bps, mcpt_variant=args.mcpt_variant, n_permutations=args.n_permutations,
@@ -630,8 +630,8 @@ def main():
             if show_plots and isinstance(res_te.get('equity_curve'), pd.Series):
                 plt.style.use('dark_background'); res_te['equity_curve'].plot(title='MC-Dropout Kelly (test)'); plt.show()
         elif t == 'rnn_dual_kelly':
-            from rnn_strategy import fit_and_eval_dual_kelly
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            from strategies.rnn_strategy import fit_and_eval_dual_kelly
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res = fit_and_eval_dual_kelly(
                 df, start=args.start, end=args.end, horizon=args.horizon, win=args.win, model_type=args.model_type,
                 cost_bps=args.cost_bps, mcpt_variant=args.mcpt_variant, n_permutations=args.n_permutations,
@@ -642,8 +642,8 @@ def main():
             if show_plots and isinstance(res.get('equity_curve'), pd.Series):
                 plt.style.use('dark_background'); res['equity_curve'].plot(title='Dual-Head Kelly (in-sample)'); plt.show()
         elif t == 'wf_rnn_dual_kelly':
-            from rnn_strategy import fit_and_eval_dual_kelly, apply_model_on_dual
-            df = pd.read_csv(f"spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
+            from strategies.rnn_strategy import fit_and_eval_dual_kelly, apply_model_on_dual
+            df = pd.read_csv(f"spy_data/spy_{args.frequency}_2000_2024.csv", parse_dates=['date']).set_index('date')
             res_tr = fit_and_eval_dual_kelly(
                 df, start='2000-01-01', end='2020-01-01', horizon=args.horizon, win=args.win, model_type=args.model_type,
                 cost_bps=args.cost_bps, mcpt_variant=args.mcpt_variant, n_permutations=args.n_permutations,

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from donchian import donchian_breakout
+from strategies.donchian import donchian_breakout
 from utils.metrics import compute_forward_log_returns, evaluate
 
 
@@ -48,12 +48,11 @@ def donchian_stability_heatmap(df: pd.DataFrame, frequency: str = 'monthly', cos
 if __name__ == '__main__':
     freq = 'daily'
     files = {
-        'daily': 'spy_daily_2000_2024.csv',
-        'weekly': 'spy_weekly_2000_2024.csv',
-        'monthly': 'spy_monthly_2000_2024.csv',
+        'daily': 'spy_data/spy_daily_2000_2024.csv',
+        'weekly': 'spy_data/spy_weekly_2000_2024.csv',
+        'monthly': 'spy_data/spy_monthly_2000_2024.csv',
     }
     df = pd.read_csv(files[freq], parse_dates=['date'])
     df.set_index('date', inplace=True)
     df = df[(df.index >= '2000-01-01') & (df.index < '2020-01-01')]
     donchian_stability_heatmap(df, frequency=freq, cost_bps=0.0)
-

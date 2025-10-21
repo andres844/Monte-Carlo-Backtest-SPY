@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from spy_tree_strategy import train_tree, tree_strategy
+from strategies.spy_tree_strategy import train_tree, tree_strategy
 from bar_permute import get_permutation
 from utils.metrics import compute_forward_log_returns
 from utils.plots import plot_fan_chart
 
 # 1. Load the SPY daily dataset from CSV
-df = pd.read_csv('spy_monthly_2000_2024.csv', parse_dates=['date'])
+df = pd.read_csv('spy_data/spy_monthly_2000_2024.csv', parse_dates=['date'])
 df.set_index('date', inplace=True)
 
 # 2. Calculate log returns (shifted so that each row gets the next bar's return)

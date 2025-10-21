@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from spy_tree_strategy import train_tree, tree_strategy
+from strategies.spy_tree_strategy import train_tree, tree_strategy
 from bar_permute import get_permutation
 from utils.metrics import compute_forward_log_returns
 from utils.plots import plot_fan_chart
@@ -60,7 +60,7 @@ def plot_tree_permutation_fan(df, start_date="2000-01-01", end_date="2020-01-01"
 
 if __name__ == "__main__":
     # Example usage with a daily SPY dataset from 2000 to 2020:
-    df = pd.read_csv("spy_daily_2000_2024.csv", parse_dates=["date"])
+    df = pd.read_csv("spy_data/spy_daily_2000_2024.csv", parse_dates=["date"])
     df.set_index("date", inplace=True)
 
     # plot the fan from 2000 to 2020

@@ -182,17 +182,17 @@ if __name__ == "__main__":
     # Example: we'll run for the weekly dataset
     freq_params = {
         'daily': {
-            'file': 'spy_daily_2000_2024.csv',
+            'file': 'spy_data/spy_daily_2000_2024.csv',
             'frequency': 'daily',
             'lags': None  # Not used for BB strategy; for RF, defaults in function
         },
         'weekly': {
-            'file': 'spy_weekly_2000_2024.csv',
+            'file': 'spy_data/spy_weekly_2000_2024.csv',
             'frequency': 'weekly',
             'lags': None
         },
         'monthly': {
-            'file': 'spy_monthly_2000_2024.csv',
+            'file': 'spy_data/spy_monthly_2000_2024.csv',
             'frequency': 'monthly',
             'lags': None
         }

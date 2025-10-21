@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from donchian import optimize_donchian, donchian_breakout
+from strategies.donchian import optimize_donchian, donchian_breakout
 from bar_permute import get_permutation
 from utils.metrics import compute_forward_log_returns
 
@@ -59,7 +59,7 @@ def plot_real_vs_perm(df, in_sample_start="2000-01-01", in_sample_end="2020-01-0
 if __name__ == "__main__":
     # Example usage:
     # 1. Load your daily CSV
-    df = pd.read_csv("spy_weekly_2000_2024.csv", parse_dates=["date"])
+    df = pd.read_csv("spy_data/spy_weekly_2000_2024.csv", parse_dates=["date"])
     df.set_index("date", inplace=True)
 
     # 2. Run the comparison plot

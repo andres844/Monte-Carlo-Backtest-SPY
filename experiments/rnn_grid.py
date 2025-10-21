@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from rnn_strategy import fit_and_eval, apply_model_on
+from strategies.rnn_strategy import fit_and_eval, apply_model_on
 
 
 def combos():
@@ -27,7 +27,7 @@ def combos():
 
 
 def main(args):
-    csv = Path(f"spy_{args.frequency}_2000_2024.csv")
+    csv = Path(f"spy_data/spy_{args.frequency}_2000_2024.csv")
     df = pd.read_csv(csv, parse_dates=['date']).set_index('date').sort_index()
 
     rows = []

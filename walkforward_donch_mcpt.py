@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from bar_permute import get_permutation
-from donchian import walkforward_donch  # Your walkforward function
+from strategies.donchian import walkforward_donch  # Your walkforward function
 from utils.metrics import compute_forward_log_returns
 from utils.plots import plot_fan_chart
 
@@ -16,7 +16,7 @@ from utils.plots import plot_fan_chart
 # ------------------------------------------------------------------
 
 # 1. Load your SPY daily data (full period: 2000-2024)
-df = pd.read_csv("spy_monthly_2000_2024.csv", parse_dates=["date"])
+df = pd.read_csv("spy_data/spy_monthly_2000_2024.csv", parse_dates=["date"])
 df.set_index("date", inplace=True)
 
 # Compute forward log returns for the full dataset

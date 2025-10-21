@@ -9,7 +9,7 @@ def main():
     plt.style.use("dark_background")
 
     # 1) Load your SPY daily dataset
-    df = pd.read_csv("spy_daily_2000_2024.csv", parse_dates=["date"])
+    df = pd.read_csv("spy_data/spy_daily_2000_2024.csv", parse_dates=["date"])
     df.set_index("date", inplace=True)
 
     # 2) Split into train (2000-2020) and test (2020+)
